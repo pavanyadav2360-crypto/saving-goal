@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GreenFuture Savings Goal Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2e9;--card:#fbfcf8;--ink:#17261c;--mute:#5d6e61;--moss:#1f5f3a;--on:#fbfcf8;--leaf:#8fc06a;--coin:#b07a14;--red:#b3362b;--line:#d5dccd;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a13;--card:#16241a;--ink:#e8f0e2;--mute:#97a99b;--moss:#7fcf93;--on:#0f1a13;--leaf:#8fc06a;--coin:#e0b04e;--red:#ff8a7d;--line:#27382c}}
+:root[data-theme="dark"]{--bg:#0f1a13;--card:#16241a;--ink:#e8f0e2;--mute:#97a99b;--moss:#7fcf93;--on:#0f1a13;--leaf:#8fc06a;--coin:#e0b04e;--red:#ff8a7d;--line:#27382c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif}
+h1,h3{font-family:'Bricolage Grotesque',Figtree,sans-serif;margin:0 0 10px}
+header{padding:26px 5vw 0}
+h1{font-size:clamp(2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.03em;line-height:1;margin:0}
+h1 span{color:var(--moss)}.tag{color:var(--mute);margin-top:6px}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:18px 5vw 0}
+nav button{border:0;background:none;font:600 15px Figtree,sans-serif;color:var(--mute);padding:10px 16px;border-radius:999px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--moss);color:var(--on)}
+:focus-visible{outline:3px solid var(--coin);outline-offset:2px}
+main{padding:18px 5vw 60px;max-width:1200px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+.stat{padding:14px 18px;border-left:5px solid var(--leaf);background:var(--card);border-radius:4px 14px 14px 4px}
+.stat b{display:block;font:800 1.6rem 'Bricolage Grotesque',sans-serif;color:var(--moss)}.stat small{color:var(--mute)}
+.warn{background:var(--card);border:1px solid var(--coin);border-radius:10px;padding:10px 14px;margin:0 0 8px}.warn.red{border-color:var(--red)}
+.goal{display:grid;grid-template-columns:1fr auto auto;gap:6px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.bar{grid-column:1/-1;height:14px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--moss),var(--leaf));border-radius:99px}
+.pill{font-size:13px;font-weight:600;padding:2px 10px;border-radius:99px;border:1px solid currentColor}
+.Complete,.On{color:var(--moss)}.At{color:var(--coin)}.Overdue{color:var(--red)}
+form,.grid2{display:grid;gap:14px}
+form{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end}
+.grid2{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+label{font-size:14px;font-weight:600;display:grid;gap:4px}
+input,select,textarea{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.btn{font:600 15px Figtree,sans-serif;background:var(--moss);color:var(--on);border:0;border-radius:8px;padding:11px 18px;cursor:pointer}
+.btn.alt{background:none;color:var(--moss);border:1.5px solid var(--moss)}.btn:disabled{opacity:.4;cursor:default}
+.msg{font-weight:600;min-height:1.4em;margin-top:8px}.msg.bad{color:var(--red)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}.n{text-align:right}
+th{color:var(--mute);font-weight:600}.x{background:none;border:0;color:var(--red);cursor:pointer;font-size:20px}
+canvas{width:100%;height:240px;display:block}.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.pg{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px}
+textarea{min-height:140px;font:13px ui-monospace,Menlo,monospace}
+</style></head><body>
+<header><h1>Green<span>Future</span></h1><div class="tag">Set a goal, log deposits, see exactly where you stand. Your data stays in this browser.</div></header>
+<nav id="tabs" role="tablist"></nav>
+<main>
+<section id="dash" class="on"><div class="stats" id="stats"></div><div id="warns"></div>
+<div class="grid2"><div class="card"><h3>Goal progress</h3><div id="goals"></div></div>
+<div class="card"><h3>Deposits per month</h3><canvas id="c1"></canvas></div></div></section>
+
+<section id="add"><div class="grid2">
+<div class="card"><h3>Add a deposit</h3><form id="fd" novalidate>
+<label>Goal<select name="goal" id="gsel"></select></label><label>Amount<input name="amount" inputmode="decimal" placeholder="1500"></label>
+<label>Date<input name="date" type="date" id="dd"></label><label>Note (optional)<input name="note" maxlength="60"></label>
+<button class="btn">Save deposit</button></form><div class="msg" id="e1"></div></div>
+<div class="card"><h3>Create a goal</h3><form id="fg" novalidate>
+<label>Name<input name="name" maxlength="60" placeholder="Bike"></label><label>Category<input name="category" maxlength="30" placeholder="Transport"></label>
+<label>Target amount<input name="target" inputmode="decimal" placeholder="45000"></label><label>Deadline<input name="deadline" type="date"></label>
+<button class="btn">Create goal</button></form><div class="msg" id="e2"></div></div></div></section>
+
+<section id="find"><div class="card"><div class="row"><input id="q" placeholder="Search notes, goals, dates" style="flex:2;min-width:200px">
+<select id="cat" style="flex:1;min-width:150px"></select></div>
+<div class="tw"><table><thead><tr><th>Date</th><th>Goal</th><th>Category</th><th class="n">Amount</th><th>Note</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="pg"><button class="btn alt" id="pv">Previous</button><span id="pi"></span><button class="btn alt" id="nx">Next</button></div></div></section>
+
+<section id="rep"><div class="grid2">
+<div class="card"><h3>Export a report</h3><div class="row"><button class="btn" data-f="md">Markdown summary</button><button class="btn alt" data-f="csv">CSV deposits</button><button class="btn alt" data-f="txt">Audit log</button></div>
+<textarea id="out" readonly placeholder="Pick a format to generate the report here."></textarea>
+<div class="row"><button class="btn alt" id="cp">Copy report</button><button class="btn alt" id="rs">Reset to sample data</button></div><div class="msg" id="e3"></div></div>
+<div class="card"><h3>Import deposits from CSV</h3><p>Paste rows with the header <code>goal,amount,date,note</code>. Goal names must match an existing goal.</p>
+<textarea id="imp" placeholder="goal,amount,date,note&#10;Goa trip,500,2026-11-01,Gift"></textarea>
+<div class="row"><button class="btn" id="ib">Import rows</button></div><div class="msg" id="e4" style="white-space:pre-wrap"></div></div></div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s),KEY='greenfuture.v1',PER=8,fmt=n=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:2});
+const iso=d=>d.toISOString().slice(0,10),today=()=>iso(new Date()),addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function seed(){let r=13;const rnd=()=>(r=(r*9301+49297)%233280)/233280,pick=a=>a[Math.floor(rnd()*a.length)];
+ const goals=[[1,'Laptop for college','Education',60000,120],[2,'Emergency fund','Safety',100000,300],[3,'Goa trip','Travel',25000,-10],[4,'New phone','Gadgets',30000,60]]
+  .map(([id,name,category,target,d])=>({id,name,category,target,deadline:addDays(d)}));
+ const deposits=Array.from({length:36},(_,i)=>({id:i+1,goal:pick([1,1,2,2,3,4]),amount:i==7?0.01:i==20?25000:pick([250,500,750,1000,1500,2000,3000]),
+  date:addDays(-1-Math.floor(rnd()*150)),note:pick(['Pocket money','Freelance','Gift','Salary','Side gig',''])}));
+ return{goals,deposits};}
+let D;
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&Array.isArray(x.goals)&&Array.isArray(x.deposits))return x}catch(e){}return seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+D=load();
+const nid=a=>a.reduce((m,x)=>Math.max(m,x.id),0)+1;
+// ---- validation ----
+function money(v,label){const s=String(v).replace(/,/g,'').trim();const x=Number(s);if(s===''||!isFinite(x))throw label+' must be a number, for example 1500 or 1500.50.';
+ if(x<=0)throw label+' must be greater than 0.';if(x>1e7)throw label+' cannot exceed 1,00,00,000.';return Math.round(x*100)/100}
+function dateOk(v,label,future){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(v).trim())||isNaN(new Date(v)))throw label+' must be a valid date (YYYY-MM-DD).';
+ if(!future&&v>today())throw label+' cannot be in the future.';if(v<'2000-01-01')throw label+' is too far in the past.';return v.trim()}
+function txt(v,label,min){const s=String(v||'').trim().replace(/\s+/g,' ');if(s.length<min)throw label+(min?' needs at least '+min+' characters.':'');return s.slice(0,60)}
+// ---- logic ----
+function summary(){const dep=D.deposits,avg=dep.length?dep.reduce((a,b)=>a+b.amount,0)/dep.length:0,warns=[],t=today();
+ const goals=D.goals.map(g=>{const mine=dep.filter(x=>x.goal==g.id),saved=Math.round(mine.reduce((a,b)=>a+b.amount,0)*100)/100,
+  percent=Math.min(100,Math.round(saved/g.target*1000)/10),left=Math.max(0,g.target-saved),days=Math.round((new Date(g.deadline)-new Date(t))/864e5);
+  const status=saved>=g.target?'Complete':days<0?'Overdue':days<=30&&percent<80?'At risk':'On track';
+  if(status=='Overdue')warns.push(`“${g.name}” passed its deadline ${-days} days ago with ${fmt(left)} still to save.`);
+  if(status=='At risk')warns.push(`“${g.name}” is due in ${days} days and only ${percent}% funded.`);
+  return{...g,saved,percent,left,days,status,monthly:left&&days>0?left/Math.max(days,1)*30:0}});
+ if(dep.length>5)dep.filter(x=>x.amount>avg*4).forEach(x=>warns.push(`Unusually large deposit of ${fmt(x.amount)} on ${x.date} (average is ${fmt(avg)}).`));
+ const monthly={};dep.forEach(x=>monthly[x.date.slice(0,7)]=(monthly[x.date.slice(0,7)]||0)+x.amount);
+ return{goals,warns,avg,monthly,saved:dep.reduce((a,b)=>a+b.amount,0),target:D.goals.reduce((a,b)=>a+b.target,0)}}
+// ---- ui ----
+const tabs=[['dash','Dashboard'],['add','Add savings'],['find','Search records'],['rep','Reports']];
+$('#tabs').innerHTML=tabs.map(([id,t],i)=>`<button role="tab" data-t="${id}" aria-selected="${!i}">${t}</button>`).join('');
+$('#tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
+ document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));try{location.hash=t}catch(e){}if(t=='dash')chart()};
+$('#dd').value=today();let page=0,S;
+function draw(){S=summary();const pct=S.target?Math.round(S.saved/S.target*100):0;
+ $('#stats').innerHTML=`<div class="stat"><b>${fmt(S.saved)}</b><small>saved overall (${pct}% of ${fmt(S.target)})</small></div><div class="stat"><b>${S.goals.length}</b><small>active goals</small></div>
+ <div class="stat"><b>${fmt(S.avg)}</b><small>average deposit</small></div><div class="stat"><b>${D.deposits.length}</b><small>deposits logged</small></div>`;
+ $('#warns').innerHTML=S.warns.map(w=>`<p class="warn ${/passed/.test(w)?'red':''}">${esc(w)}</p>`).join('');
+ $('#goals').innerHTML=S.goals.length?S.goals.map(g=>`<div class="goal"><div><b>${esc(g.name)}</b> <small>${esc(g.category)}</small></div><span class="pill ${g.status.split(' ')[0]}">${g.status}</span>
+ <button class="x" title="Delete goal" onclick="del('goal',${g.id})">&times;</button><div class="bar"><i style="width:${g.percent}%"></i></div>
+ <small style="grid-column:1/-1">${fmt(g.saved)} of ${fmt(g.target)} (${g.percent}%). ${g.left?`Save about ${fmt(g.monthly)} a month to finish by ${g.deadline}.`:'Goal reached.'}</small></div>`).join(''):'<p>No goals yet. Create one in Add savings.</p>';
+ $('#gsel').innerHTML=S.goals.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('');
+ const cur=$('#cat').value,cats=[...new Set(D.goals.map(g=>g.category))];$('#cat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join('');$('#cat').value=cur;
+ table();chart()}
+function rows(){const q=$('#q').value.toLowerCase(),c=$('#cat').value,G=Object.fromEntries(D.goals.map(g=>[g.id,g]));
+ return D.deposits.filter(d=>G[d.goal]).map(d=>({...d,g:G[d.goal]})).filter(d=>(!c||d.g.category===c)&&(!q||[d.note,d.g.name,d.date,d.g.category].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date))}
+function table(){const r=rows(),max=Math.max(0,Math.ceil(r.length/PER)-1);page=Math.min(page,max);
+ $('#tb').innerHTML=r.slice(page*PER,page*PER+PER).map(d=>`<tr><td>${d.date}</td><td>${esc(d.g.name)}</td><td>${esc(d.g.category)}</td><td class="n">${fmt(d.amount)}</td><td>${esc(d.note)}</td>
+ <td><button class="x" title="Delete deposit" onclick="del('deposit',${d.id})">&times;</button></td></tr>`).join('')||'<tr><td colspan="6">No records match your search.</td></tr>';
+ $('#pi').textContent=`Page ${page+1} of ${max+1} (${r.length} records)`;$('#pv').disabled=page<=0;$('#nx').disabled=page>=max}
+$('#q').oninput=$('#cat').onchange=()=>{page=0;table()};$('#pv').onclick=()=>{page--;table()};$('#nx').onclick=()=>{page++;table()};
+function del(kind,id){if(kind=='goal'){if(!confirm('Delete this goal and all its deposits?'))return;D.goals=D.goals.filter(g=>g.id!=id);D.deposits=D.deposits.filter(d=>d.goal!=id)}
+ else D.deposits=D.deposits.filter(d=>d.id!=id);save();draw()}
+function chart(){const c=$('#c1'),W=c.width=Math.max(300,c.clientWidth*2),H=c.height=480,x=c.getContext('2d'),m=Object.entries(S?S.monthly:{}),css=getComputedStyle(document.body);
+ x.clearRect(0,0,W,H);x.font='24px Figtree,sans-serif';x.textAlign='center';if(!m.length){x.fillStyle=css.getPropertyValue('--mute');x.fillText('No deposits yet',W/2,H/2);return}
+ const mx=Math.max(...m.map(a=>a[1])),bw=W/m.length;m.forEach(([k,v],i)=>{const h=(H-100)*v/mx;x.fillStyle=css.getPropertyValue('--moss');x.fillRect(i*bw+bw*.18,H-50-h,bw*.64,h);
+ x.fillStyle=css.getPropertyValue('--mute');x.fillText(k.slice(2),i*bw+bw/2,H-16);x.fillText(fmt(v),i*bw+bw/2,H-58-h)})}
+addEventListener('resize',()=>S&&chart());
+function form(id,msg,fn){const f=$(id);f.onsubmit=e=>{e.preventDefault();const m=$(msg);try{fn(Object.fromEntries(new FormData(f)));save();f.reset();$('#dd').value=today();m.className='msg';m.textContent='Saved.';setTimeout(()=>m.textContent='',2000);draw()}
+ catch(err){m.className='msg bad';m.textContent=typeof err=='string'?err:'Please check the values you entered.'}}}
+form('#fd','#e1',p=>{if(!D.goals.some(g=>g.id==p.goal))throw'Create a goal first, then choose it here.';
+ D.deposits.push({id:nid(D.deposits),goal:+p.goal,amount:money(p.amount,'Amount'),date:dateOk(p.date,'Date',false),note:txt(p.note,'Note',0)})});
+form('#fg','#e2',p=>{const dl=dateOk(p.deadline,'Deadline',true);if(dl<today())throw'Deadline must be today or later.';
+ D.goals.push({id:nid(D.goals),name:txt(p.name,'Goal name',2),category:txt(p.category,'Category',2),target:money(p.target,'Target'),deadline:dl})});
+// ---- reports ----
+function report(f){const s=summary(),N=Object.fromEntries(D.goals.map(g=>[g.id,g.name])),sorted=[...D.deposits].sort((a,b)=>a.date.localeCompare(b.date));
+ if(f=='csv')return'goal,amount,date,note\n'+sorted.map(d=>[N[d.goal]||'?',d.amount,d.date,d.note].map(v=>/[",\n]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':v).join(',')).join('\n');
+ if(f=='md')return`# Savings report ${today()}\n\n**Total saved:** ${fmt(s.saved)} of ${fmt(s.target)}  \n**Average deposit:** ${fmt(s.avg)}\n\n| Goal | Saved | Target | Progress | Status |\n|---|---:|---:|---:|---|\n`+
+  s.goals.map(g=>`| ${g.name} | ${fmt(g.saved)} | ${fmt(g.target)} | ${g.percent}% | ${g.status} |`).join('\n')+(s.warns.length?'\n\n## Warnings\n'+s.warns.map(w=>'- '+w).join('\n'):'');
+ return`AUDIT LOG ${new Date().toLocaleString()}\n${'='.repeat(40)}\n`+sorted.map(d=>`${d.date}  ${(N[d.goal]||'?').padEnd(22)} ${fmt(d.amount).padStart(10)}  ${d.note}`).join('\n')+`\n${'='.repeat(40)}\nTOTAL ${fmt(s.saved)}`}
+document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{$('#out').value=report(b.dataset.f)});
+$('#cp').onclick=async()=>{const o=$('#out'),m=$('#e3');if(!o.value){m.className='msg bad';m.textContent='Generate a report first.';return}
+ try{await navigator.clipboard.writeText(o.value)}catch(e){o.select();document.execCommand('copy')}m.className='msg';m.textContent='Copied.'};
+$('#rs').onclick=()=>{if(confirm('Replace all data with the sample dataset?')){D=seed();save();draw()}};
+$('#ib').onclick=()=>{const m=$('#e4'),lines=$('#imp').value.trim().split(/\r?\n/);const log=[];let ok=0;
+ if(lines.length<2||!/^goal,amount,date/i.test(lines[0])){m.className='msg bad';m.textContent='Start with the header row: goal,amount,date,note';return}
+ lines.slice(1).forEach((ln,i)=>{if(!ln.trim())return;const [gn,a,d,...n]=ln.split(',');try{const g=D.goals.find(x=>x.name.toLowerCase()==(gn||'').trim().toLowerCase());if(!g)throw'unknown goal';
+  D.deposits.push({id:nid(D.deposits),goal:g.id,amount:money(a,'amount'),date:dateOk((d||'').trim(),'date',false),note:txt(n.join(','),'note',0)});ok++}catch(e){log.push(`Row ${i+2}: ${e}`)}});
+ save();draw();m.className='msg'+(log.length?' bad':'');m.textContent=`Imported ${ok} row(s).`+(log.length?'\n'+log.join('\n'):'')};
+draw();
+</script></body></html>
